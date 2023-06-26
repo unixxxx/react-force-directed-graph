@@ -24,6 +24,7 @@ export interface ForceDirectedGraphProps {
   links: Link[];
   nodeRadius?: number;
   fontSize?: number;
+  useZoom?: boolean;
 }
 
 interface State {
@@ -38,6 +39,7 @@ export const ForceDirectedGraph: FC<ForceDirectedGraphProps> = ({
   nodes,
   fontSize = 13,
   nodeRadius = 35,
+  useZoom: useDrag = false,
 }) => {
   const wrapperRef = createRef<HTMLDivElement>();
   const graphRef = createRef<SVGSVGElement>();
@@ -53,10 +55,12 @@ export const ForceDirectedGraph: FC<ForceDirectedGraphProps> = ({
         height
       );
 
-      addDragAndZoom(svg, {
-        width,
-        height,
-      });
+      if (useDrag) {
+        addDragAndZoom(svg, {
+          width,
+          height,
+        });
+      }
 
       setState({
         svg,
