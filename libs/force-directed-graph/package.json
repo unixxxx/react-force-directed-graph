@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "name": "react-force-directed-graph",
   "author": {
@@ -16,5 +16,12 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/unixxxx/react-force-directed-graph"
-  }
+  },
+  "keywords": [
+    "d3",
+    "react",
+    "graph",
+    "force",
+    "force directed graph"
+  ]
 }
