@@ -1,4 +1,20 @@
 {
+  "version": "1.0.0",
+  "license": "MIT",
   "name": "react-force-directed-graph",
-  "version": "0.0.1"
+  "author": {
+    "name": "Shalva Jashiashvili",
+    "email": "sh.jashiashvili@gmail.com",
+    "url": "https://www.toptal.com/resume/shalva-jashiashvili"
+  },
+  "peerDependencies": {
+    "d3": "^7.8.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "homepage": "https://github.com/unixxxx/react-force-directed-graph",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unixxxx/react-force-directed-graph"
+  }
 }
