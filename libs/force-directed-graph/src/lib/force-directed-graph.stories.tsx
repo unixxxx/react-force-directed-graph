@@ -1,6 +1,12 @@
-import { ForceDirectedGraph, Link, Node } from 'react-force-directed-graph';
-import styles from './app.module.scss';
-import { useState } from 'react';
+import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { ForceDirectedGraph } from './force-directed-graph';
+import { Node, Link } from '../types';
+
+const Story: ComponentMeta<typeof ForceDirectedGraph> = {
+  component: ForceDirectedGraph,
+  title: 'ForceDirectedGraph',
+};
+export default Story;
 
 const links: Link[] = [
   {
@@ -249,26 +255,12 @@ const nodes: Node[] = [
   },
 ];
 
-export function App() {
-  const [state, setState] = useState({ nodes, links });
+const Template: ComponentStory<typeof ForceDirectedGraph> = (args) => (
+  <ForceDirectedGraph {...args} />
+);
 
-  return (
-    <div className={styles['container']}>
-      <ForceDirectedGraph
-        links={state.links}
-        nodes={state.nodes}
-        deleteNode={(node) =>
-          setState((state) => ({
-            ...state,
-            nodes: nodes.filter((n) => n.id !== node.id),
-            links: links.filter(
-              (l) => node.id !== l.source && node.id !== l.target
-            ),
-          }))
-        }
-      />
-    </div>
-  );
-}
-
-export default App;
+export const Primary = Template.bind({});
+Primary.args = {
+  links,
+  nodes,
+};
