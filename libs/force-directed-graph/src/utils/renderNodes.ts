@@ -1,32 +1,17 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { select, Selection, arc } from 'd3';
 
-import { Node } from '../types';
+import { Node, NodeAction } from '../types';
 
-import loadNodes from '../icons/loadChildNodes.svg';
-import closeNode from '../icons/close.svg';
-import { scale } from './utils';
+import { fontSizeToNumber, scale } from './helpers';
 import { renderPopup } from './popup';
 
 const toRadian = (degree: number) => degree * (Math.PI / 180);
-
-export const setNodeIconDef = (
-  defs: Selection<SVGGElement, unknown, null, undefined>,
-  nodeRadius: number
-) => {
-  defs
-    .append('clipPath')
-    .attr('id', 'avatar-clip')
-    .append('circle')
-    .attr('r', nodeRadius);
-};
 
 export const renderNodes = (
   svg: Selection<SVGSVGElement | null, unknown, null, undefined>,
   nodesContainer: Selection<SVGGElement, unknown, null, undefined>,
   nodes: Node[],
-  loadLink: (node: Node) => void,
-  deleteNode: (node: Node) => void,
   nodeRadius: number,
   fontSize: number
 ) => {
@@ -39,6 +24,7 @@ export const renderNodes = (
   const nodeImageX = -nodeMenuWidth / 2;
   const nodeImageY = (-nodeMenuheight + 20) / 2;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function renderNodeMenu(this: any, event: any, item: any) {
     event.preventDefault();
     event.stopPropagation();
@@ -55,32 +41,23 @@ export const renderNodes = (
     }
     thisNode.attr('class', 'menu-visible');
 
-    const widthMenu = 180;
-    const heightMenu = 180;
-    const innerRadius = 45;
-    const outerRadius = 80;
+    const innerRadius = (item.nodeRadius || 40) + 5;
+    const outerRadius = innerRadius + 35;
+    const widthMenu = (innerRadius + outerRadius) * 1.5;
+    const heightMenu = (innerRadius + outerRadius) * 1.5;
 
-    const menuDataSet = [
-      {
-        title: 'loadRelations',
-        action: loadLink,
-        icon: loadNodes,
-        startAngle: 0,
-        endAngle: toRadian(120),
+    const actions = (item.actions as NodeAction[]) || [];
+    const menuItemAngle = 360 / actions.length;
+    const angles = actions.map((_, i) => toRadian(i * menuItemAngle));
+
+    const menuDataSet =
+      actions.map((action, index) => ({
+        ...action,
+        startAngle: angles[index],
+        endAngle: index < angles.length - 1 ? angles[index + 1] : toRadian(360),
         innerRadius,
         outerRadius,
-      },
-      {
-        title: 'deleteNode',
-        action: deleteNode,
-        icon: closeNode,
-        startAngle: toRadian(120),
-        endAngle: toRadian(240),
-        innerRadius,
-        outerRadius,
-      },
-    ];
-    const menuItemAngle = 360 / menuDataSet.length;
+      })) ?? [];
 
     const svgMenu = thisNode
       .append('svg')
@@ -103,9 +80,9 @@ export const renderNodes = (
       .attr('class', 'arc')
       .on('click', (_, d) => d.action(item));
 
-    const arcOptions = (i: number) => ({
-      innerRadius,
-      outerRadius,
+    const arcOptions = (item, i: number) => ({
+      innerRadius: item.innerRadius,
+      outerRadius: item.outerRadius,
       startAngle: i * toRadian(menuItemAngle),
       endAngle: (i + 1) * toRadian(menuItemAngle),
       padAngle: 0.05,
@@ -115,20 +92,19 @@ export const renderNodes = (
     g.append('path')
       .attr('class', 'menuItem')
       .attr('id', (d) => d.title)
-      .attr('d', (_, i) => menuArc(arcOptions(i)))
-      .attr('fill', '#000');
+      .attr('d', (item, i) => menuArc(arcOptions(item, i)))
+      .attr('fill', '#000')
+      .attr('opacity', 0.9);
 
     g.append('image')
       .attr('xlink:href', (_, i) => menuDataSet[i].icon)
       .attr('stroke', 'white')
-      .attr('dy', '.35em')
-      .each(function (d) {
+      .each(function (d, i) {
         const centroid = menuArc.centroid(d);
         select(this)
           .attr('x', centroid[0])
           .attr('y', centroid[1])
-          .attr('dy', '0.35em')
-          .style('transform', 'translate(-7%, -5%)');
+          .style('transform', 'translate(-5%, -5%)');
       });
     const card = thisNode
       .insert('foreignObject')
@@ -136,16 +112,27 @@ export const renderNodes = (
       .attr('width', popupCardWidth)
       .attr('height', popupCardHeight)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .attr('x', (this as any).getBBox().x + innerRadius + nodeMenuWidth + 5)
+      .attr('x', (this as any).getBBox().x + innerRadius / 2 + nodeMenuWidth)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .attr('y', (this as any).getBBox().y + innerRadius + nodeMenuWidth + 5)
+      .attr('y', (this as any).getBBox().y + innerRadius / 2 + nodeMenuWidth)
       .attr('class', 'svg-popup');
 
-    renderPopup(card, item);
+    if (item.props) {
+      renderPopup(card, item);
+    }
     /* bring dynamically added elements to front (simulates z-index)*/
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (svg.select('g#popupContainer').node() as any).appendChild(this);
   }
+
+  svg
+    .selectAll('defs')
+    .data(nodes, (d: any) => d?.id)
+    .enter()
+    .append('clipPath')
+    .attr('id', (d) => d.id)
+    .append('circle')
+    .attr('r', (d) => d.nodeRadius ?? nodeRadius);
 
   return nodesContainer
     .selectAll('g.node')
@@ -157,17 +144,24 @@ export const renderNodes = (
     .call((g) =>
       g
         .append('circle')
-        .attr('r', nodeRadius)
+        .attr('r', (d) => d.nodeRadius ?? nodeRadius)
         .attr('stroke-width', 3)
-        .attr('stroke', (d) => scale(d.type))
-        .attr('fill', (d) => scale(d.type))
+        .attr(
+          'stroke',
+          (d) => d.css?.borderColor ?? scale(d.type + d.id + d.id)
+        )
+        .attr(
+          'fill',
+          (d) =>
+            d.css?.background ?? d.css?.backgroundColor ?? scale(d.type + d.id)
+        )
     )
     .call((g) =>
       g
-        .filter((d) => !!d.img)
+        .filter((d) => !!d.image)
         .append('image')
-        .attr('clip-path', 'url(#avatar-clip)')
-        .attr('xlink:href', (d) => d.img!)
+        .attr('clip-path', (d) => `url(#${d.id})`)
+        .attr('xlink:href', (d) => d.image!)
         .attr('x', nodeImageX)
         .attr('y', nodeImageY)
         .attr('height', nodeImageHeight)
@@ -192,7 +186,7 @@ export const renderNodes = (
     .call((g) =>
       g
         .append('circle')
-        .attr('r', nodeRadius)
+        .attr('r', (d) => d.nodeRadius ?? nodeRadius)
         .attr('stroke-width', 3)
         .attr('stroke', '#000')
         .attr('stroke-opacity', 0)
@@ -203,11 +197,18 @@ export const renderNodes = (
       g
         .append('text')
         .text((d) => d.name.toUpperCase())
-        .attr('font-size', fontSize)
+        .attr('font-size', (d) => d.css?.fontSize ?? fontSize)
         .attr('text-transform', 'uppercase')
-        .style('transform', 'translateY(55px)')
+        .style(
+          'transform',
+          (d) =>
+            `translateY(${
+              (d.nodeRadius ?? nodeRadius) +
+              fontSizeToNumber(d.css?.fontSize, fontSize)
+            }px)`
+        )
         .style('pointer-events', 'none')
-        .attr('font-family', 'Oswald')
-        .attr('fill', '#fff')
+        .attr('font-family', (d) => d.css?.fontFamily ?? 'auto')
+        .attr('fill', (d) => d.css?.color ?? '#fff')
     );
 };

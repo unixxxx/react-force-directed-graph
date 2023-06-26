@@ -1,6 +1,6 @@
 import { Selection } from 'd3';
 import { Link } from '../types';
-import { getLinkLabelWidth, scale } from './utils';
+import { fontSizeToNumber, getLinkLabelWidth, scale } from './helpers';
 
 export const setLinkArrowDefs = (
   defs: Selection<SVGGElement, unknown, null, undefined>,
@@ -25,7 +25,7 @@ export const setLinkArrowDefs = (
     .html('')
     .append('path')
     .attr('id', (d) => `arrow-${d.id}`)
-    .style('fill', '#fff')
+    .style('fill', (d) => d.css?.color ?? '#fff')
     .style('fill-opacity', 1)
     .attr('d', 'M0,-5L10,0L0,5');
 };
@@ -39,7 +39,7 @@ export const renderLinks = (
     .data(links, (d: any) => d?.id)
     .join('path')
     .attr('class', 'link')
-    .style('stroke', '#fff')
+    .style('stroke', (d) => d.css?.color ?? '#fff')
     .style('stroke-opacity', 1)
     .style('stroke-width', 1)
     .style('stroke-dasharray', 10)
@@ -50,7 +50,8 @@ export const renderLinks = (
 
 export const setLinkRectDefs = (
   defs: Selection<SVGGElement, unknown, null, undefined>,
-  links: Link[]
+  links: Link[],
+  fontSize: number
 ) => {
   const markers = defs
     .selectAll('marker.rect')
@@ -58,30 +59,47 @@ export const setLinkRectDefs = (
     .attr('class', 'rect')
     .join('marker')
     .attr('id', (d: Link) => `rect-${d.id}`)
-    .attr('refX', (d) => getLinkLabelWidth(d.type) / 2)
+    .attr(
+      'refX',
+      (d) =>
+        getLinkLabelWidth(d.type, fontSizeToNumber(d.css?.fontSize, fontSize)) /
+        2
+    )
     .attr('refY', 10)
     .attr('orient', 'auto')
-    .attr('markerWidth', (d) => getLinkLabelWidth(d.type))
-    .attr('markerHeight', 20);
+    .attr('markerWidth', (d) =>
+      getLinkLabelWidth(d.type, fontSizeToNumber(d.css?.fontSize, fontSize))
+    )
+    .attr('markerHeight', (d) => d.css?.fontSize ?? fontSize * 2);
 
   markers
     .append('rect')
     .attr('class', 'marker')
-    .attr('width', (d) => getLinkLabelWidth(d.type))
+    .attr('width', (d) =>
+      getLinkLabelWidth(d.type, fontSizeToNumber(d.css?.fontSize, fontSize))
+    )
     .attr('height', 20)
     .attr('rx', 5)
     .attr('ry', 5)
-    .attr('fill', (d) => scale(d.type))
+    .attr(
+      'fill',
+      (d) => d.css?.background ?? d.css?.backgroundColor ?? scale(d.type)
+    )
     .style('fill-opacity', 1);
 
   const linkLabels = markers
     .append('text')
     .attr('class', 'link_label')
-    .attr('font-size', 13)
-    .attr('fill', '#fff')
+    .attr('font-size', (d) => d.css?.fontSize ?? 13)
+    .attr('fill', (d) => d.css?.color ?? '#fff')
     .style('fill-opacity', 1)
     .attr('dy', 15)
-    .attr('dx', (d) => getLinkLabelWidth(d.type) / 2)
+    .attr(
+      'dx',
+      (d) =>
+        getLinkLabelWidth(d.type, fontSizeToNumber(d.css?.fontSize, fontSize)) /
+        2
+    )
     .text((d) => d.type.toUpperCase().replace(/_/g, ' '));
 
   return linkLabels;

@@ -6,6 +6,7 @@ export const createSvg = (
   height: number
 ) => {
   const svg = select(graphRef.current);
+  svg.html('');
 
   const viewBox = {
     x: -width / 2,
