@@ -110,47 +110,72 @@ export const tickSimulation = (
 };
 
 const calculateTouchPoints = (
-  source: { x: number; y: number },
-  target: { x: number; y: number },
+  source: { x: number; y: number; nodeRadius: number },
+  target: { x: number; y: number; nodeRadius: number },
   radius: number,
   multipleLinks: boolean,
   linkIndex: number
 ): { x: number; y: number }[] => {
+  const sourceRadius =
+    !source.nodeRadius || isNaN(source.nodeRadius) ? radius : source.nodeRadius;
+  const targetRadius =
+    !target.nodeRadius || isNaN(target.nodeRadius) ? radius : target.nodeRadius;
+
   const dx = target.x - source.x;
   const dy = target.y - source.y;
+
   const distance = Math.sqrt(dx * dx + dy * dy);
 
   // draw straight line between nodes
-  if (!multipleLinks || distance < radius) {
-    const x1 = (dx * radius) / distance + source.x;
-    const x2 = ((distance - radius) * dx) / distance + source.x;
+  if (!multipleLinks || sourceRadius + targetRadius > distance) {
+    const x1 = (dx * sourceRadius) / distance + source.x;
+    const x2 = ((distance - targetRadius) * dx) / distance + source.x;
 
-    const y1 = (dy * radius) / distance + source.y;
-    const y2 = ((distance - radius) * dy) / distance + source.y;
+    const y1 = (dy * sourceRadius) / distance + source.y;
+    const y2 = ((distance - targetRadius) * dy) / distance + source.y;
     return [
       { x: x2, y: y2 },
       { x: x1, y: y1 },
     ];
   }
 
-  const a = Math.asin(radius / distance);
-  const b = Math.atan2(dy, dx);
+  const aTarget = Math.asin(targetRadius / distance);
+  const bTarget = Math.atan2(dy, dx);
 
-  let t = b - a - 1;
-  const ta = { x: radius * Math.sin(t), y: radius * -Math.cos(t) };
+  const aSource = Math.asin(sourceRadius / distance);
+  const bSource = Math.atan2(dy, dx);
 
-  t = b + a + 1;
-  const tb = { x: radius * -Math.sin(t), y: radius * Math.cos(t) };
+  let tTarget = bTarget - aTarget - 1;
+  let tSource = bSource - aSource - 1;
+  const taTarget = {
+    x: targetRadius * Math.sin(tTarget),
+    y: targetRadius * -Math.cos(tTarget),
+  };
+  const taSource = {
+    x: sourceRadius * Math.sin(tSource),
+    y: sourceRadius * -Math.cos(tSource),
+  };
+
+  tTarget = bTarget + aTarget + 1;
+  tSource = bSource + aSource + 1;
+  const tbTarget = {
+    x: targetRadius * -Math.sin(tTarget),
+    y: targetRadius * Math.cos(tTarget),
+  };
+  const tbSource = {
+    x: sourceRadius * -Math.sin(tSource),
+    y: sourceRadius * Math.cos(tSource),
+  };
 
   const targetCoordinates =
     linkIndex > 0
-      ? { x: target.x + tb.x, y: target.y + tb.y }
-      : { x: target.x + ta.x, y: target.y + ta.y };
+      ? { x: target.x + tbTarget.x, y: target.y + tbTarget.y }
+      : { x: target.x + taTarget.x, y: target.y + taTarget.y };
 
   const sourceCoordinates =
     linkIndex === 0
-      ? { x: source.x + ta.x, y: source.y + ta.y }
-      : { x: source.x + tb.x, y: source.y + tb.y };
+      ? { x: source.x - tbSource.x, y: source.y - tbSource.y }
+      : { x: source.x - taSource.x, y: source.y - taSource.y };
 
   return [targetCoordinates, sourceCoordinates];
 };

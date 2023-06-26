@@ -14,7 +14,7 @@ export const setLinkArrowDefs = (
     .attr('id', (d) => `arrow-${d.id}`)
     .attr('class', 'm')
     .attr('viewBox', '0 -5 10 10')
-    .attr('refX', nodeRadius / 4)
+    .attr('refX', 10)
     .attr('refY', 0)
     .attr('orient', 'auto')
     .attr('markerWidth', 8)
