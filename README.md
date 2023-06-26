@@ -62,3 +62,7 @@ export interface ForceDirectedGraphProps {
 ```
 
 ### Check the demo app for more complete examples
+
+<img width="1114" alt="Screenshot 2023-06-27 at 00 15 20" src="https://github.com/unixxxx/react-force-directed-graph/assets/2078004/46045041-e630-404f-a1f7-15a98ae3952c">
+
+
